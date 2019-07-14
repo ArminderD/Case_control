@@ -458,6 +458,6 @@ ftable(tab2)
 # below us using the epiR package
 cc <- epi.2by2(tab2, method = "case.control")
 cc
-
+mhodds
 ```
 
