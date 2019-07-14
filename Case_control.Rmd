@@ -119,7 +119,7 @@ knitr::include_graphics("Fig2.png")
 
 #### 2. Checking Your Data 
 
-##### 2.1 About the study
+##### About the study
 
 Greencountry is a case control study of an outbreak of Shiga toxin producing E. coli (STEC) that occurred in the Tasmanian town of Greencountry (population 5,500 persons) in the first six months of 1998. Investigators were concerned about exposures in the farm environment, as Greencountry was a rural area and several cases lived on a farm. To identify potential sources of infection, the Tasmanian Department of Health conducted a case control study of 25 cases and 25 controls. Controls were selected from the same medical practice as cases and were matched to a case by age (±5 years). 
 
@@ -162,4 +162,135 @@ knitr::include_graphics("data_description.png")
 
 We need to construct multi-line commands, so go into the R script you have opened. In the first section, we are going to develop a new numeric variable which will be automatically labeled. Then we will use the label values command to label data for several variables.
 
+**Task 2: In the R script window type the below commands**
+
+We use syntax `dataset$varname` to call (or define) a variable from a specific dataset, e.g.: `gc$status`
+
+```{r, eval=FALSE}
+#a.	
+
+gc$caseat <- ifelse(gc$status == "CONTROL", 0,  1)
+
+#b.	
+
+gc$case <- factor(gc$case, levels = c(0,1),labels = c("Control", "Case"))
+
+#c.
+
+gc$agegrp <- factor(gc$agematch, 
+			levels = c("0-9", "10-64", "65+"),
+			labels = c("0-9", "10-64", "65+"))
+
+#d.	
+
+gc[c(7,9,11:25)] <- lapply(gc[c(7,9,11:25)], factor, 
+                      levels = c(0, 1), 
+                      labels = c("No", "Yes"))#Since we want to assign value labels only certain columns (exposure variables), we specify the column numbers here. 
+
+#e.	Hit run in the R-Script and review the results.
+
+#f.	Do some tabulations using these new and labeled variables to check that things have worked properly.
+```
+
+    Question 2. What has happened to the data and values in the dataset?
+
+The first of these commands has generated a new variable for designating cases and controls, which was then labeled with ‘No’ for 0 and ‘Yes’ for 1.  In the second step we used the factor command to generate a labeled numeric variable for agegroup. 
+
+Factors are stored as a vector of integer values with a corresponding set of character values to use when the factor is displayed. The factor function is used to create a factor. 
+
+The last step here set up a label for yes/no variables and applied it to the values of multiple variables. `lappy`/`sapply` and `apply` functions are handy to perform these tasks. 
+
+***
+**Hint:** It is good to make tabulations of newly created and recoded variables part of your R-script when manipulating data so you can review that they have worked. It is best to do it immediately after the command, so you don’t lose track of what you have done.
+
+***
+
+##### Descriptive analysis 
+
+For epidemiological studies, it is important to describe the clinical characteristics of cases. In case control studies in particular, it is important to compare the features of cases and controls to ensure that they are similar. If the study has been matched, then it is important to check that the matching during study recruitment occurred according to plan.
+
+    Question 3. Describe STEC cases illness. What commands might be useful to do this? Write them into your R-script, run them and review the results.
+
+To describe cases’ illness, we can use a few different commands:
+
+```{r}
+#summary gives you more detailed statistics as in STATA
+#command “which” helps subset the data so that only values for cases are summarized
+	summary(gc[which(gc$case == "Case"),])
+
+
+# to look at specific variables
+#define the variables which you want to look at and save as “vars”
+#We use a for loop such that for all variables in “vars”, do as follows.
+vars <- c("vomit", "hus", "diarrhoea")
+
+#start the for loop
+for(var in vars){
+
+#create a table for one variable at a time among cases
+   b <- table(gc[gc$case== "Case",var], 
+gc[gc$case=="Case", "case"])
+#rename column names as per your output
+  colnames(b) <- c("n", "%")
+#print variable name to as a header in the output
+  print(var)
+#print table with (n & %)
+  print(b)
+# repeats the loop till all variables in “vars” are complete
+}
+vars <- c("vomit", "hus", "diarrhoea")
+
+for(var in vars){
+  
+  #create a table for one variable at a time among cases
+  b <- table(gc[,var],  gc$case)
+  print(prop.table(b))
+  #print variable name to as a header in the output
+  print(var)
+  #print table with (n & %)
+  print(b)
+  # repeats the loop till all variables in “vars” are complete
+}
+
+```
+
+    Question 4: Compare age and sex between cases and controls. How similar are cases to control in terms of the matching variable?
+
+To compare cases with controls, we can compare means, and use some simple cross-tabulations that incorporate a chi-square or exact test:
+
+```{r}
+#to summarize age across case and control & obtain mean/median/quartiles for age
+library(plyr)
+ddply(gc,.(gc$case), summarize, M=mean(age), Med=median(age),     Q=matrix(quantile (age, probs=c(0.25,0.50,0.75)) ,ncol=3) )
+
+#to calculate Chi Square and Fisher’s Exact Test
+
+#Pearson’s Chi-Sq test 
+#correct = FALSE to turn off Yates’ correction factor
+x <- table(gc$case, gc$sex)
+chisq.test(x, correct=FALSE)
+
+#Fisher’ Exact Test
+y<- table(gc$agegrp, gc$case)
+fisher.test(y)
+
+# RESULTS: No significant difference between cases and controls by age or sex
+```
+
+***
+
+**Hint:** The table command is very useful for making tables of statistics. It can calculate multiple statistics on the same variable. 
+
+***
+
+#### 4. Measures of Association 
+
+##### Crude analysis
+
+In case control studies, we have selected study subjects on the basis of disease and cannot estimate incidence. In case control studies we estimate odds ratios by cross tabulating disease against exposure in a two-by-two table.
+
+*Table 2:* A two-by-two table
+```{r, fig.align='center', out.width = "500px", echo=FALSE}
+knitr::include_graphics("table1.png")
+```
 
