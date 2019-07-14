@@ -10,6 +10,22 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+``` {r, include=FALSE}
+if (!require(plyr)) {
+    install.packages("plyr")
+    require(plyr)
+}
+if (!require(epiR)) {
+    install.packages("epiR")
+    require(epiR)
+}
+if (!require(EpiStats)) {
+    install.packages("EpiStats")
+    require(EpiStats)
+}
+```
+
+
 ***
 
 ### Learning objectives:
@@ -166,7 +182,7 @@ We need to construct multi-line commands, so go into the R script you have opene
 
 We use syntax `dataset$varname` to call (or define) a variable from a specific dataset, e.g.: `gc$status`
 
-```{r, eval=FALSE}
+```{r}
 #a.	
 
 gc$caseat <- ifelse(gc$status == "CONTROL", 0,  1)
@@ -216,7 +232,7 @@ To describe cases’ illness, we can use a few different commands:
 ```{r}
 #summary gives you more detailed statistics as in STATA
 #command “which” helps subset the data so that only values for cases are summarized
-	summary(gc[which(gc$case == "Case"),])
+summary(gc[which(gc$case == "Case"),])
 
 
 # to look at specific variables
@@ -224,29 +240,16 @@ To describe cases’ illness, we can use a few different commands:
 #We use a for loop such that for all variables in “vars”, do as follows.
 vars <- c("vomit", "hus", "diarrhoea")
 
-#start the for loop
-for(var in vars){
-
-#create a table for one variable at a time among cases
-   b <- table(gc[gc$case== "Case",var], 
-gc[gc$case=="Case", "case"])
-#rename column names as per your output
-  colnames(b) <- c("n", "%")
-#print variable name to as a header in the output
-  print(var)
-#print table with (n & %)
-  print(b)
-# repeats the loop till all variables in “vars” are complete
-}
-vars <- c("vomit", "hus", "diarrhoea")
-
 for(var in vars){
   
   #create a table for one variable at a time among cases
   b <- table(gc[,var],  gc$case)
-  print(prop.table(b))
   #print variable name to as a header in the output
   print(var)
+  # table of proportions
+  print(prop.table(b))
+  #rename column names as per your output
+  colnames(b) <- c("n", "%")
   #print table with (n & %)
   print(b)
   # repeats the loop till all variables in “vars” are complete
@@ -254,14 +257,16 @@ for(var in vars){
 
 ```
 
+
     Question 4: Compare age and sex between cases and controls. How similar are cases to control in terms of the matching variable?
 
 To compare cases with controls, we can compare means, and use some simple cross-tabulations that incorporate a chi-square or exact test:
 
-```{r}
+```{r, eval=FALSE}
+# First install the 'plyr' package before the next step
 #to summarize age across case and control & obtain mean/median/quartiles for age
 library(plyr)
-ddply(gc,.(gc$case), summarize, M=mean(age), Med=median(age),     Q=matrix(quantile (age, probs=c(0.25,0.50,0.75)) ,ncol=3) )
+ddply(gc,.(gc$case), summarize, M=mean(age), Med=median(age), Q=matrix(quantile (age, probs=c(0.25,0.50,0.75)) ,ncol=3) )
 
 #to calculate Chi Square and Fisher’s Exact Test
 
@@ -292,5 +297,167 @@ In case control studies, we have selected study subjects on the basis of disease
 *Table 2:* A two-by-two table
 ```{r, fig.align='center', out.width = "500px", echo=FALSE}
 knitr::include_graphics("table1.png")
+```
+
+Odds	= probability event occurs/probability event doesn’t occur 
+$$=\frac{p}{(1-p)}$$
+OR	= odds of exposure among cases/odds exposure among controls
+```{r, fig.align='center', out.width = "200px", echo=FALSE}
+knitr::include_graphics("eqn1.png")
+```
+
+**Task 4: In the R script type the below commands**
+
+a. make a 2x2 table of exposure and outcome
+```{r}
+table(gc$case, gc$travel)
+```
+
+b.	To calculate odds ratio, first install and load package “epiR”. Then use the following command. You can also estimate Relative Risk by changing the method to “cohort.count”.
+
+```{r}
+library(epiR)
+#create a 2x2 table of exposure and outcome
+counts <- table(gc$travel, gc$case)
+#to view table
+counts
+#Applu epi.2by2 function to table. 
+cc <- epi.2by2(counts, method = "case.control")
+#to view output
+cc
+```
+
+    Question 5: What do you think about the association between illness and travel? How would you interpret the statistics that R produces?
+
+There is no statistically significant association between travel in the incubation period and illness. The odds ratio is less than one and the 95% confidence interval includes 1. 
+
+The table presents proportions of diseased and non-diseased exposed, as well as the population attributable fractions. There is an associated Chi-square test statistic and associated p-value
+
+
+##### Frequency matching
+
+Because the study investigators frequency-matched during study recruitment, we should adjust odds ratios for age. 
+
+**Task 5: In the R- Script type the below commands**
+
+a.	Make a 3 way table stating exposure, outcome and stratifying variable in that order:
+
+```{r}
+x1 <- table(gc$travel, gc$case, gc$agegrp)
+# to view table
+x1
+#Use epi.2by2 function to calculate ORs.
+stcc <- epi.2by2(x1, method = "case.control")
+#to view output
+stcc
+```
+
+b.	To extract various outputs from the output table stcc
+
+```{r, eval=FALSE}
+#note that $ is used twice to imply two levels within output
+#Crude OR
+stcc$massoc$crude.wald
+#Stratum specific ORs
+stcc$massoc$OR.strata.wald
+#To combine results of all elements into a single table
+results <- rbind(stcc$massoc$crude.wald,   stcc$massoc$OR.strata.wald)  #rbind and cbind are commands used to combine R objects by rows or columns respectively
+```
+
+From the first command you can see the three separate tables that have given rise to the odds ratios in the second command. The second command produces a crude odds ratio that is the same as what was estimated earlier. A combined Mantel-Haenszel odds ratio is produced that takes into account the effect of the third variable, which in this case is age group. A small difference between the crude and summary odds ratio may indicate that age is a potential confounder for the relationship between STEC and the exposure.
+
+Hint: The key thing to remember with data that have been matched during design of a study, is that you must take account of that matching during analysis. If you do not stratify or conduct a matched analysis, the results may be biased.
+
+The next step is to repeat this analysis for all exposure variables and examine the association with illness. This could be quite a laborious process…. 
+
+
+    Question 6: How would you do this analysis of multiple exposures simply?
+
+
+In this instance, we are going to demonstrate the use of the `epi2.by2` command and a `for` loop, which allows us to repeat analyses easily.
+
+```{r,results="hide"}
+library("epiR")
+vars <- c("animal", "travel", "pets", "watersport")
+#for each exposure, run the analysis
+for (var in vars){
+  b <- table(gc[,var], gc$case)
+  test <- epi.2by2(b, method = "case.control")
+  #resultstable <- rbind(mh$massoc$OR.crude.wald, mh$massoc$OR.strata.wald, mh$mas)
+  
+  print(b)
+  print(test)
+}
+```
+
+    Question 7: Fill in the table below and discuss if there any exposures that might be the risk factor causing the outbreak?
+
+*Table 3:* Potential risk factors
+```{r, fig.align='center', out.width = "750px", echo=FALSE}
+knitr::include_graphics("table2.png")
+```
+
+The main risk factor causing illness is drinking raw milk. Raw or unpasteurized milk is a known cause of enteric infections, including STEC. Was there any evidence of confounding or effect modification by age? Imagine if no frequency matching by age was incorporated in design. What might the age profile of controls look like in comparison to cases?
+
+The other option is to use the cctable option in R that is available in package `EpiStats`. 
+This command calculates number of cases, attack rate among cases and controls, odds ratio, 95%CI interval, 95% p-value for each variable of varlist.  The result table could be sorted by p-value, odds ratio, attack rates. 
+
+```{r}
+library(EpiStats)
+x <- cctable(gc, "case", exposure=c(14:21), exact = TRUE)
+x
+```
+
+
+##### Stratified analysis
+
+There are two exposures that are statistically associated with STEC infection. We need to sort out the relationship to identify what is truly causing infection. In this instance, we are going to ignore the frequency matching for simplicity sake. When we observe two or more variables associated with the outcome, we need to stratify or control for the other variables our analysis. 
+
+**Task 7: In the command window type the below commands**
+
+```{r}
+#a.	
+mytable <- xtabs(~gc$farmlive+gc$case+gc$milkraw)
+ftable(mytable) # print table 
+summary(mytable) # chi-square test of independence
+
+#b.	
+library(epiR)	 
+cc <- epi.2by2(mytable, method = "case.control")
+cc
+
+#c.	
+tab1 <- xtabs(~gc$milkraw+gc$case+gc$farmlive)
+ftable(tab1) # print table 
+summary(tab1) # chi-square test of independence
+
+#d.	
+cc <- epi.2by2(tab1, method = "case.control")
+cc
+```
+
+
+    Question 8: What is your assessment of the association between STEC infection and living on a farm after controlling for raw milk consumption? What about your conclusions about raw milk consumption? Is there evidence of confounding?
+
+
+After controlling for raw milk consumption, the association with living on a farm is negligible. There is a distinct difference between the Mantel-Haenzel pooled odds ratio and the crude odds ratio, which indicates that raw milk is a confounder for the association between living on a farm and STEC. The association between raw milk consumption and STEC infection is very strong regardless of whether a person lives on a farm or not.
+
+#### 5. Matched Analysis 
+
+In case control studies where you have individually matched controls to your cases on one or more factors that are likely to correspond to potential confounders, you need to ensure that you maintain that matching during analysis. In R there are a couple of choices for analysis:
+
+1.	Conduct conditional logistic regression using `clogit` from the 'survival' package in R.
+
+
+**Task 8: We are going to analyse the association between STEC infection and raw milk consumption by typing in the below commands**
+
+```{r}
+table(gc$matchid, gc$case)
+tab2 <- xtabs(~gc$milkraw+gc$case+gc$agegrp)
+ftable(tab2)
+# below us using the epiR package
+cc <- epi.2by2(tab2, method = "case.control")
+cc
+
 ```
 
