@@ -371,7 +371,11 @@ results <- rbind(stcc$massoc$crude.wald,   stcc$massoc$OR.strata.wald)  #rbind a
 
 From the first command you can see the three separate tables that have given rise to the odds ratios in the second command. The second command produces a crude odds ratio that is the same as what was estimated earlier. A combined Mantel-Haenszel odds ratio is produced that takes into account the effect of the third variable, which in this case is age group. A small difference between the crude and summary odds ratio may indicate that age is a potential confounder for the relationship between STEC and the exposure.
 
+***
+
 Hint: The key thing to remember with data that have been matched during design of a study, is that you must take account of that matching during analysis. If you do not stratify or conduct a matched analysis, the results may be biased.
+
+***
 
 The next step is to repeat this analysis for all exposure variables and examine the association with illness. This could be quite a laborious process…. 
 
@@ -405,7 +409,7 @@ knitr::include_graphics("table2.png")
 The main risk factor causing illness is drinking raw milk. Raw or unpasteurized milk is a known cause of enteric infections, including STEC. Was there any evidence of confounding or effect modification by age? Imagine if no frequency matching by age was incorporated in design. What might the age profile of controls look like in comparison to cases?
 
 The other option is to use the cctable option in R that is available in package `EpiStats`. 
-This command calculates number of cases, attack rate among cases and controls, odds ratio, 95%CI interval, 95% p-value for each variable of varlist.  The result table could be sorted by p-value, odds ratio, attack rates. 
+This command calculates number of cases, attack rate among cases and controls, odds ratio, 95%CI interval,  p-value for each variable of varlist.  The result table could be sorted by p-value, odds ratio, attack rates. 
 
 ```{r}
 library(EpiStats)
@@ -442,7 +446,9 @@ cc
 ```
 
 
-    Question 8: What is your assessment of the association between STEC infection and living on a farm after controlling for raw milk consumption? What about your conclusions about raw milk consumption? Is there evidence of confounding?
+    Question 8: What is your assessment of the association between STEC infection and living on a farm after 
+    controlling for raw milk consumption? What about your conclusions about raw milk consumption? Is there evidence 
+    of confounding?
 
 
 After controlling for raw milk consumption, the association with living on a farm is negligible. There is a distinct difference between the Mantel-Haenzel pooled odds ratio and the crude odds ratio, which indicates that raw milk is a confounder for the association between living on a farm and STEC. The association between raw milk consumption and STEC infection is very strong regardless of whether a person lives on a farm or not.
@@ -451,7 +457,7 @@ After controlling for raw milk consumption, the association with living on a far
 
 In case control studies where you have individually matched controls to your cases on one or more factors that are likely to correspond to potential confounders, you need to ensure that you maintain that matching during analysis. In R there are a couple of choices for analysis:
 
-1.	Conduct conditional logistic regression using `clogit` from the 'survival' package in R.
+    Conduct conditional logistic regression using `clogit` from the 'survival' package in R.
 
 
 **Task 8: We are going to analyse the association between STEC infection and raw milk consumption by typing in the below commands**
