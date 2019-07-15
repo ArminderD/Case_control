@@ -262,7 +262,8 @@ for(var in vars){
 ```
 
 
-    Question 4: Compare age and sex between cases and controls. How similar are cases to control in terms of the matching variable?
+    Question 4: Compare age and sex between cases and controls. How similar are cases to control in terms of the 
+    matching variable?
 
 To compare cases with controls, we can compare means, and use some simple cross-tabulations that incorporate a chi-square or exact test:
 
